@@ -43,7 +43,9 @@ class ChinaSpider(CrawlSpider):
             if ext_params:
                 for k in ext_params:
                     print('loader add value :;',k,'===',meta.get(k))
-                    loader.add_value(k, meta.get('k'))
+                    value=meta.get(k)
+                    if value:
+                        loader.add_value(k, value)
 
             # 动态获取属性配置
             for key, value in item.get('attrs').items():
