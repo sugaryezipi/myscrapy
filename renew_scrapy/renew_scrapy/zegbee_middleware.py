@@ -183,8 +183,8 @@ class CrawlSpider(Spider):
             raise ValueError("Unsupported HTTP method: {}".format(method))
 
     def _requests_to_follow(self, response):
-        if not isinstance(response, HtmlResponse):
-            return
+        # if not isinstance(response, HtmlResponse):
+        #     return
         seen = set()
         for rule_index, rule in enumerate(self._rules):
             links = [
@@ -242,6 +242,70 @@ class CrawlSpider(Spider):
             "CRAWLSPIDER_FOLLOW_LINKS", True
         )
         return spider
+
+
+import pandas as pd
+
+class JsonLinkExtractor:
+    '''
+                 'url':'',
+                 'url_prefix':"",
+                'base_url':'',
+                'base_format_id':'',
+    '''
+    def __init__(self, *args, **kwargs):
+        self.restrict_extra_json = kwargs.pop('restrict_extra_json', {})
+        self.extra_json = kwargs.pop('extra_json', {})
+        self.ext_params = kwargs.pop('ext_params', {})
+        self.unique = True
+
+    def ensure_list(self, value):
+        if isinstance(value, list):
+            return value
+        else:
+            # 如果不是列表，将其包装在一个列表中
+            return [value]
+
+    def extract_links(self, response):
+        res = json.loads(response.text)
+        print('res=========',res)
+
+        extra_json_obj = {}
+        # 全局
+        if self.extra_json:
+            for k, v in self.extra_json.items():
+                extra_json_obj[k] = jmespath.search(v, res)
+        print('extra_json_obj  ==>', extra_json_obj)
+        restrict_extra_json_obj = {}
+        has_url= self.restrict_extra_json.get('url')
+        for k, v in self.restrict_extra_json.items():
+            if k=='url_prefix':
+                continue
+            if not has_url:
+                #没有指定url
+                if k=='base_format_id':
+                    base_format_value=jmespath.search(v, res)
+                    base_url_=self.restrict_extra_json.get('base_url')
+                    restrict_extra_json_obj['url']=base_url_.format(base_format_value)
+                    # 拼接url
+
+            restrict_extra_json_obj[k] = self.ensure_list(jmespath.search(v, res))
+        df = pd.DataFrame(restrict_extra_json_obj)
+        restrict_extra_list = df.to_dict(orient='records')
+        final_list = [{**extra_json_obj, **restrict_} for restrict_ in restrict_extra_list]
+
+        all_links=[]
+        for restrict_ in final_list:
+            url= restrict_.pop('url')
+            # link.add_meta({'ext_params':self.ext_params})
+            restrict_['ext_params']=self.ext_params
+            if self.restrict_extra_json.get('url_prefix'):
+                url=self.restrict_extra_json.get('url_prefix')+url
+            all_links.append(Link(url,meta=restrict_))
+
+        if self.unique:
+            return unique_list(all_links)
+        return all_links
 
 
 
@@ -596,65 +660,3 @@ class MyLxmlLinkExtractor:
 
 
 _default_link_extractor = MyLxmlLinkExtractor()
-
-import pandas as pd
-
-class JsonLinkExtractor:
-    '''
-                 'url':'',
-                 'url_prefix':"",
-                'base_url':'',
-                'base_format_id':'',
-    '''
-    def __init__(self, *args, **kwargs):
-        self.restrict_extra_json = kwargs.pop('restrict_extra_json', {})
-        self.extra_json = kwargs.pop('extra_json', {})
-        self.transfer_params = kwargs.pop('transfer_params', {})
-        self.unique = True
-
-    def ensure_list(self, value):
-        if isinstance(value, list):
-            return value
-        else:
-            # 如果不是列表，将其包装在一个列表中
-            return [value]
-
-    def extract_links(self, response):
-        res = json.loads(response.text)
-        print('res=========',res)
-
-        extra_json_obj = {}
-        # 全局
-        if self.extra_json:
-            for k, v in self.extra_json.items():
-                extra_json_obj[k] = jmespath.search(v, res)
-        print('extra_json_obj  ==>', extra_json_obj)
-        restrict_extra_json_obj = {}
-        has_url= self.restrict_extra_json.get('url')
-        for k, v in self.restrict_extra_json.items():
-            if k=='url_prefix':
-                continue
-            if not has_url:
-                #没有指定url
-                if k=='base_format_id':
-                    base_format_value=jmespath.search(v, res)
-                    base_url_=self.restrict_extra_json.get('base_url')
-                    restrict_extra_json_obj['url']=base_url_.format(base_format_value)
-                    # 拼接url
-
-            restrict_extra_json_obj[k] = self.ensure_list(jmespath.search(v, res))
-        df = pd.DataFrame(restrict_extra_json_obj)
-        restrict_extra_list = df.to_dict(orient='records')
-        final_list = [{**extra_json_obj, **restrict_} for restrict_ in restrict_extra_list]
-
-        all_links=[]
-        for restrict_ in final_list:
-            url= restrict_.pop('url')
-            if self.restrict_extra_json.get('url_prefix'):
-                url=self.restrict_extra_json.get('url_prefix')+url
-            all_links.append(Link(url,meta=restrict_))
-
-        if self.unique:
-            return unique_list(all_links)
-        return all_links
-

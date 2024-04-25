@@ -46,24 +46,9 @@ rules = {
 
 }
 
+'''
+rule 多了这两个参数  
+        self.req_method = req_method   GET  POST 
+        self.req_data = req_data   （json形式的 ）
 
-rules = {
-
-'json_demo':(Rule(JsonLinkExtractor(restrict_extra_json={'name': 'products[*].name',
-                                                    'created_at':'products[*].created_at',
-
-                                                   'url':'products[*].detail_url',
-                                                   'url_prefix':'http://127.0.0.1:8000'
-
-                                                   },
-                                    extra_json={'cur_page': 'current_page',
-                                                'next_page':'next_page_url'
-                                                },
-                                    transfer_params=['name', 'created_at', 'cur_page']
-                                    ),
-             callback='parse_item',
-                  ),
-
-             )
-
-}
+'''

@@ -1,3 +1,5 @@
+import json
+
 import jmespath
 
 
@@ -59,6 +61,6 @@ class JsonDemoSpider(CrawlSpider):
                     if extractor.get('method') == 'attr':
                         loader.add_value(key, getattr(response, *extractor.get('args')))
                     if extractor.get('method') == 'jmespath':
-                        loader.add_value(key, jmespath.search(*extractor.get('args')))
+                        loader.add_value(key, jmespath.search(*extractor.get('args'),json.loads(response.text)))
             yield loader.load_item()
 
