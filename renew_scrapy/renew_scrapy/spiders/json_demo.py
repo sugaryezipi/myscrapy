@@ -1,7 +1,7 @@
-import scrapy
-from scrapy import Request
-from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import CrawlSpider, Rule
+import jmespath
+
+
+from renew_scrapy.zegbee_middleware import CrawlSpider, Rule
 from items import *
 
 from utils import get_config
@@ -9,25 +9,25 @@ from utils import get_config
 from rules import rules
 from loaders import *
 
-class ChinaSpider(CrawlSpider):
-    name = "china"
+
+'''
+'url': '',
+'url_prefix': "",
+'base_url': '',
+'base_format_id': '',
+'''
+
+class JsonDemoSpider(CrawlSpider):
+    name = "json_demo"
     def __init__(self, name, *args, **kwargs):
         config = get_config(name)
         self.config = config
         self.rules = rules.get(config.get('rules'))
         self.start_urls = config.get('start_urls')
         self.allowed_domains = config.get('allowed_domains')
-        super(ChinaSpider, self).__init__(*args, **kwargs)
+        super(JsonDemoSpider, self).__init__(*args, **kwargs)
 
-    def _build_request(self, rule_index, link):
-        base_meta = dict(rule=rule_index, link_text=link.text)
-        base_meta.update(link.meta)
-        return Request(
-            url=link.url,
-            callback=self._callback,
-            errback=self._errback,
-            meta=base_meta
-        )
+
 
     def parse_item(self, response):
 
@@ -58,4 +58,7 @@ class ChinaSpider(CrawlSpider):
                         loader.add_value(key, *extractor.get('args'), **{'re': extractor.get('re')})
                     if extractor.get('method') == 'attr':
                         loader.add_value(key, getattr(response, *extractor.get('args')))
+                    if extractor.get('method') == 'jmespath':
+                        loader.add_value(key, jmespath.search(*extractor.get('args')))
             yield loader.load_item()
+

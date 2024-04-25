@@ -2,6 +2,8 @@
 
 前端fastapi 静态代码
 todo
- post的复写  json中新增字段
+    get： item中出現頁面攜帶的參數即為正常  todo： 測試多個rule  翻頁
+    pose： item中出現頁面攜帶的參數即為正常 todo： 測試多個rule  翻頁
+
 
  前端的界面

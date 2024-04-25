@@ -1,4 +1,4 @@
-# Scrapy settings for risk_scrapy project
+# Scrapy settings for renew_scrapy project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,14 +7,14 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "risk_scrapy"
+BOT_NAME = "renew_scrapy"
 
-SPIDER_MODULES = ["risk_scrapy.spiders"]
-NEWSPIDER_MODULE = "risk_scrapy.spiders"
+SPIDER_MODULES = ["renew_scrapy.spiders"]
+NEWSPIDER_MODULE = "renew_scrapy.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "risk_scrapy (+http://www.yourdomain.com)"
+#USER_AGENT = "renew_scrapy (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = False
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "risk_scrapy.middlewares.RiskScrapySpiderMiddleware": 543,
+#    "renew_scrapy.middlewares.RenewScrapySpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "risk_scrapy.middlewares.RiskScrapyDownloaderMiddleware": 543,
+#    "renew_scrapy.middlewares.RenewScrapyDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -62,9 +62,9 @@ ROBOTSTXT_OBEY = False
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-ITEM_PIPELINES = {
-   "risk_scrapy.pipelines.RiskScrapyPipeline": 300,
-}
+#ITEM_PIPELINES = {
+#    "renew_scrapy.pipelines.RenewScrapyPipeline": 300,
+#}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

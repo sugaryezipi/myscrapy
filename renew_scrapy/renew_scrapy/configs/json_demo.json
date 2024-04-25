@@ -1,0 +1,58 @@
+{
+  "spider": "json_demo",
+  "website": "自己的網站",
+  "type": "新闻",
+  "index": "http://tech.china.com/",
+  "settings": {
+    "USER_AGENT": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36"
+  },
+  "start_urls": [
+    "http://127.0.0.1:8000/get_products/?product_id=1"
+  ],
+  "allowed_domains": [
+
+  ],
+  "rules": "json_demo",
+  "item": {
+    "class": "ShangPinItem",
+    "loader": "ChinaLoader",
+    "attrs": {
+      "detail_name": [
+
+        {
+          "method": "jmespath",
+          "args": [
+            "detail_name"
+          ]
+        }
+      ],
+         "produced_at": [
+
+        {
+          "method": "jmespath",
+          "args": [
+            "produced_at"
+          ]
+        }
+      ],
+         "price": [
+
+        {
+          "method": "jmespath",
+          "args": [
+            "price"
+          ]
+        }
+      ],
+         "description": [
+
+        {
+          "method": "jmespath",
+          "args": [
+            "description"
+          ]
+        }
+      ]
+    }
+  }
+}

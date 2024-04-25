@@ -1,5 +1,5 @@
 from scrapy.loader import ItemLoader
-from scrapy.loader.processors import TakeFirst, Join, Compose
+from itemloaders.processors import TakeFirst, Join, Compose
 
 
 class NewsLoader(ItemLoader):

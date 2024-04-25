@@ -8,7 +8,7 @@
 from itemadapter import ItemAdapter
 
 
-class RiskScrapyPipeline:
+class RenewScrapyPipeline:
     def process_item(self, item, spider):
         print('pipline  item===',dict(item))
         return item
