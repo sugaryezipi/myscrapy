@@ -6,11 +6,11 @@ from scrapy.crawler import CrawlerProcess
 
 def run():
     # name = sys.argv[1]
-    name = 'json_demo'
+    name = 'json_post_demo'
     # name = 'china'
     custom_settings = get_config(name)
     # 爬取使用的 Spider 名称
-    spider = custom_settings.get('spider', 'json_demo')
+    spider = custom_settings.get('spider', 'json_post_demo')
     project_settings = get_project_settings()
     print('project_settings  :: ',project_settings)
     settings = dict(project_settings.copy())

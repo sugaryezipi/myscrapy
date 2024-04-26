@@ -103,7 +103,7 @@ class Rule:
         self.process_request = process_request or _identity_process_request
         self.follow = follow if follow is not None else not callback
         self.req_method = req_method
-        self.req_data = req_data
+        self.req_data = req_data if req_data is not None else {}
 
     def _compile(self, spider):
         self.callback = _get_method(self.callback, spider)
@@ -119,6 +119,53 @@ class CrawlSpider(Spider):
         super().__init__(*a, **kw)
         self._compile_rules()
 
+    def start_requests(self):
+        '''
+          "start_requests":{
+                "method": "POST",
+                "data": {"product_id": 1},
+                "meta":{}
+              },
+        :return:
+        '''
+        for url in self.start_urls:
+            method=self.config.get('start_requests',{}).get('method',"GET")
+            meta=self.config.get('start_requests',{}).get('meta',{})
+            data = {}
+            # 如果是POST请求，获取请求数据
+            if method != "GET":
+                data = self.config.get('start_requests',{}).get('data',{})
+                print('生成data:  ', data)
+            print('url::',url)
+            if method == "GET":
+                # GET请求
+                yield Request(
+                    url=url,
+                    method=method,
+                    errback=self._errback,
+                    meta=meta
+                )
+
+            elif method == "POST":
+                # POST请求
+                yield FormRequest(
+                    url=url,
+                    method="POST",
+                    formdata=data,
+                    errback=self._errback,
+                    meta=meta
+                )
+            elif method == "JSON":
+                # JSON请求
+                yield JsonRequest(
+                    url=url,
+                    method="POST",
+                    data=data,
+                    errback=self._errback,
+                    meta=meta
+                )
+            else:
+                raise ValueError("Unsupported HTTP method: {}".format(method))
     def _parse(self, response, **kwargs):
         return self._parse_response(
             response=response,
@@ -139,16 +186,26 @@ class CrawlSpider(Spider):
         # 自己传入的字段
 
         method = "GET"
-        data = None
+        data = {}
 
         if kwargs and kwargs.get('req_method'):
             # 根据参数中传递的请求方法来设置method变量
             method = kwargs.get('req_method').upper()
 
             # 如果是POST请求，获取请求数据
-            if method == "POST":
-                data = kwargs.get('req_data')
-
+            if method != "GET":
+                req_data_ = kwargs.get('req_data',{})
+                data={}
+                for k, v in req_data_.items():
+                    if v['source']=='meta':
+                        data[k] = base_meta[v['value']]
+                    else:
+                        data[k] = v['value']
+                print('生成data:  ',data)
+                # 'product_id': {'value': 'next_page',
+                #                'source': 'meta'},
+                # 'product_id2': {'value': 'next_page',
+                #                 'source': 'constant'}
         # 根据请求方法来选择合适的Scrapy请求类型
         if method == "GET":
             # GET请求
@@ -163,7 +220,7 @@ class CrawlSpider(Spider):
             # POST请求
             return FormRequest(
                 url=link.url,
-                method=method,
+                method="POST",
                 formdata=data,
                 callback=self._callback,
                 errback=self._errback,
@@ -173,8 +230,8 @@ class CrawlSpider(Spider):
             # JSON请求
             return JsonRequest(
                 url=link.url,
-                method=method,
-                json=data,
+                method="POST",
+                data=data,
                 callback=self._callback,
                 errback=self._errback,
                 meta=base_meta
@@ -194,8 +251,7 @@ class CrawlSpider(Spider):
             ]
             for link in rule.process_links(links):
                 seen.add(link)
-                req_method=rule.req_method
-                request = self._build_request(rule_index, link,req_method=req_method)
+                request = self._build_request(rule_index, link,req_method=rule.req_method,req_data=rule.req_data)
                 yield rule.process_request(request, response)
 
     def _callback(self, response, **cb_kwargs):
@@ -249,12 +305,18 @@ import pandas as pd
 class JsonLinkExtractor:
     '''
                  'url':'',
-                 'url_prefix':"",
-                'base_url':'',
+                 'url_prefix':"",  自己填写
+                'base_url':'',  一定要有 {}    自己填写
                 'base_format_id':'',
+                ========================
+                  'next_page_url':'',
+                 'next_page_url_prefix':"", 自己填写
+                'next_page_base_url':'',  一定要有 {}  自己填写
+                'next_page_base_format_id':'',
+
     '''
     def __init__(self, *args, **kwargs):
-        self.restrict_extra_json = kwargs.pop('restrict_extra_json', {})
+        self.restrict_json = kwargs.pop('restrict_json', {})
         self.extra_json = kwargs.pop('extra_json', {})
         self.ext_params = kwargs.pop('ext_params', {})
         self.unique = True
@@ -273,35 +335,58 @@ class JsonLinkExtractor:
         extra_json_obj = {}
         # 全局
         if self.extra_json:
+            has_next_page=self.extra_json.get('next_page_url')
             for k, v in self.extra_json.items():
+                if k == 'next_page_url_prefix' or k =='next_page_base_url' or k =='post_url':
+                    continue
+                if not has_next_page:
+                    # 没有指定url
+                    if k == 'next_page_base_format_id':
+                        base_format_value = jmespath.search(v, res)
+                        base_url_ = self.restrict_json.get('next_page_base_url')
+                        extra_json_obj['next_page_url'] = base_url_.format(base_format_value)
+
+                print('k {} ==> v {}'.format(k, v))
                 extra_json_obj[k] = jmespath.search(v, res)
         print('extra_json_obj  ==>', extra_json_obj)
         restrict_extra_json_obj = {}
-        has_url= self.restrict_extra_json.get('url')
-        for k, v in self.restrict_extra_json.items():
-            if k=='url_prefix':
+        has_url= self.restrict_json.get('url')
+        for k, v in self.restrict_json.items():
+            if k=='url_prefix' or k == 'base_url' or k=='post_url':
                 continue
             if not has_url:
                 #没有指定url
                 if k=='base_format_id':
                     base_format_value=jmespath.search(v, res)
-                    base_url_=self.restrict_extra_json.get('base_url')
-                    restrict_extra_json_obj['url']=base_url_.format(base_format_value)
+                    base_url_=self.restrict_json.get('base_url')
+                    restrict_extra_json_obj['url']=self.ensure_list(base_url_.format(base_format_value))
                     # 拼接url
 
             restrict_extra_json_obj[k] = self.ensure_list(jmespath.search(v, res))
         df = pd.DataFrame(restrict_extra_json_obj)
         restrict_extra_list = df.to_dict(orient='records')
-        final_list = [{**extra_json_obj, **restrict_} for restrict_ in restrict_extra_list]
-
+        if restrict_extra_list:
+            final_list = [{**extra_json_obj, **restrict_} for restrict_ in restrict_extra_list]
+        else:
+            final_list = [extra_json_obj]
         all_links=[]
+        print('final_list ::: ',final_list)
         for restrict_ in final_list:
-            url= restrict_.pop('url')
-            # link.add_meta({'ext_params':self.ext_params})
-            restrict_['ext_params']=self.ext_params
-            if self.restrict_extra_json.get('url_prefix'):
-                url=self.restrict_extra_json.get('url_prefix')+url
-            all_links.append(Link(url,meta=restrict_))
+            restrict_['ext_params'] = self.ext_params
+            if restrict_.get('url'):
+                url= restrict_.pop('url')
+                if self.restrict_json.get('url_prefix')  and url:
+                    url=self.restrict_json.get('url_prefix')+url
+            else:
+                url= restrict_.get('next_page_url')
+                if url:
+                    url = restrict_.pop('next_page_url')
+                    if self.extra_json.get('next_page_url_prefix') and url :
+                        url = self.extra_json.get('next_page_url_prefix') + url
+                else:
+                    url = self.extra_json.get('next_page_post_url') or self.restrict_json.get('post_url') or  self.extra_json.get('post_url')
+            if url:
+                all_links.append(Link(url,meta=restrict_))
 
         if self.unique:
             return unique_list(all_links)
@@ -402,7 +487,7 @@ class MyLxmlParserLinkExtractor:
             operator.attrgetter("url") if canonicalized else _canonicalize_link_url
         )
         self.restrict_extra_xpath=restrict_extra_xpath
-        self.restrict_extra_json=restrict_extra_json
+        self.restrict_json=restrict_extra_json
 
     def _iter_links(self, document):
         for el in document.iter(etree.Element):
@@ -448,8 +533,8 @@ class MyLxmlParserLinkExtractor:
                         if not custom_data.get(attr_name):
                             custom_data[attr_name]=extra_tag.get()
 
-            # if self.restrict_extra_json:
-            #     for attr_name, extra_json in self.restrict_extra_json.items():
+            # if self.restrict_json:
+            #     for attr_name, extra_json in self.restrict_json.items():
             #         # 这里要用jmspath 来解析
             #         jmes_value=jmespath.search(extra_json,)
 

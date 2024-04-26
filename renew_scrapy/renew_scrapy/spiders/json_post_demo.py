@@ -1,10 +1,12 @@
 import json
 
 import jmespath
-
+import scrapy
 
 from renew_scrapy.zegbee_middleware import CrawlSpider, Rule
 from items import *
+from scrapy import Request, FormRequest
+from scrapy.http import JsonRequest
 
 from utils import get_config
 
@@ -19,15 +21,15 @@ from loaders import *
 'base_format_id': '',
 '''
 # get -返回json
-class JsonDemoSpider(CrawlSpider):
-    name = "json_demo"
+class JsonPostDemoSpider(CrawlSpider):
+    name = "json_post_demo"
     def __init__(self, name, *args, **kwargs):
         config = get_config(name)
         self.config = config
         self.rules = rules.get(config.get('rules'))
         self.start_urls = config.get('start_urls')
         self.allowed_domains = config.get('allowed_domains')
-        super(JsonDemoSpider, self).__init__(*args, **kwargs)
+        super(JsonPostDemoSpider, self).__init__(*args, **kwargs)
 
 
 

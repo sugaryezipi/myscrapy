@@ -49,7 +49,7 @@ from fastapi import FastAPI, HTTPException, Path
 from pydantic import BaseModel
 from datetime import datetime
 
-app = FastAPI()
+
 
 # 模拟商品数据
 products_detail_data = {
@@ -120,12 +120,13 @@ class Product(BaseModel):
 class ProductList(BaseModel):
     products: List[Product]
     current_page: int
-    next_page_url: str
-
-
-@app.get("/get_products/")
-async def get_products(product_id: int):
-    print('product_id::',product_id)
+    next_page: str
+class Producta(BaseModel):
+    product_id: int = 1
+@app.post("/demo_products")
+async def get_products(prod: Producta):
+    print('product_id::',prod.product_id)
+    product_id=prod.product_id
     if product_id < 1 or product_id > len(products_data):
         raise HTTPException(status_code=404, detail="Product ID not found")
 
@@ -144,9 +145,36 @@ async def get_products(product_id: int):
         products.append(product)
     print('products ::',products)
     current_page = product_id
-    next_page_url = f"/get_products/?product_id={product_id + 1}" if product_id < len(products_data) / 5 else ''
+    next_page = f"{product_id + 1}" if product_id < len(products_data) / 5 else ''
 
-    return jsonable_encoder(ProductList(products=products, current_page=current_page, next_page_url=next_page_url))
+    return jsonable_encoder(ProductList(products=products, current_page=current_page, next_page=next_page))
+
+
+@app.get("/get_products")
+async def get_products1(product_id: int):
+    print('product_id::',product_id)
+
+    if product_id < 1 or product_id > len(products_data):
+        raise HTTPException(status_code=404, detail="Product ID not found")
+
+    products = []
+    start_index = (product_id - 1) * 5 + 1
+    end_index = min(start_index + 5, len(products_data) + 1)
+    print('start_index:: ',start_index,'end_index::',end_index)
+    for i in range(start_index, end_index):
+        product_info = products_data[i]
+        product_detail_url = f"/product/{i}/detail"
+        product = Product(
+            name=product_info["name"],
+            created_at=product_info["created_at"],
+            detail_url=product_detail_url
+        )
+        products.append(product)
+    print('products ::',products)
+    current_page = product_id
+    next_page = f"{product_id + 1}" if product_id < len(products_data) / 5 else ''
+
+    return jsonable_encoder(ProductList(products=products, current_page=current_page, next_page=next_page))
 
 
 @app.get("/products", response_class=HTMLResponse)

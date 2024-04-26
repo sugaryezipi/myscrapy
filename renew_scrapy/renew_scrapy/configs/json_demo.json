@@ -13,6 +13,10 @@
 
   ],
   "rules": "json_demo",
+  "start_requests":{
+    "method": "POST",
+    "data": {"product_id": 1}
+  },
   "item": {
     "class": "ShangPinItem",
     "loader": "ChinaLoader",
