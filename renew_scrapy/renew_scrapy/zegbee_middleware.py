@@ -23,6 +23,8 @@ from scrapy.utils.python import unique as unique_list
 from scrapy.utils.response import get_base_url
 from scrapy.utils.url import url_has_any_extension, url_is_from_any_domain
 
+
+
 logger = logging.getLogger(__name__)
 
 # from lxml/src/lxml/html/__init__.py
@@ -131,6 +133,8 @@ class CrawlSpider(Spider):
         for url in self.start_urls:
             method=self.config.get('start_requests',{}).get('method',"GET")
             meta=self.config.get('start_requests',{}).get('meta',{})
+            cookies=self.config.get('start_requests',{}).get('cookies',{})
+            dont_filter=self.config.get('start_requests',{}).get('dont_filter',True)
             data = {}
             # 如果是POST请求，获取请求数据
             if method != "GET":
@@ -143,7 +147,11 @@ class CrawlSpider(Spider):
                     url=url,
                     method=method,
                     errback=self._errback,
-                    meta=meta
+                    meta=meta,
+                    dont_filter=dont_filter,
+                    cookies=cookies
+
+
                 )
 
             elif method == "POST":
@@ -153,6 +161,7 @@ class CrawlSpider(Spider):
                     method="POST",
                     formdata=data,
                     errback=self._errback,
+                    cookies = cookies,
                     meta=meta
                 )
             elif method == "JSON":
@@ -162,6 +171,7 @@ class CrawlSpider(Spider):
                     method="POST",
                     data=data,
                     errback=self._errback,
+                    cookies=cookies,
                     meta=meta
                 )
             else:
@@ -187,10 +197,14 @@ class CrawlSpider(Spider):
 
         method = "GET"
         data = {}
+        dont_filter = True #通常第一页都不过滤
 
         if kwargs and kwargs.get('req_method'):
             # 根据参数中传递的请求方法来设置method变量
             method = kwargs.get('req_method').upper()
+            dont_filter = kwargs.get('dont_filter')
+            if not dont_filter:
+                dont_filter = False
 
             # 如果是POST请求，获取请求数据
             if method != "GET":
@@ -214,7 +228,8 @@ class CrawlSpider(Spider):
                 method=method,
                 callback=self._callback,
                 errback=self._errback,
-                meta=base_meta
+                meta=base_meta,
+                dont_filter=dont_filter
             )
         elif method == "POST":
             # POST请求
@@ -298,6 +313,9 @@ class CrawlSpider(Spider):
             "CRAWLSPIDER_FOLLOW_LINKS", True
         )
         return spider
+
+
+
 
 
 import pandas as pd
@@ -461,8 +479,44 @@ class Link:
             f"meta={{{meta_str}}})"
         )
 
+def extract_data_from_res(response, config):
+    extracted_data = {}
+    if config:
+        for key, extractor in config.items():
+            method = extractor.get('method')
+            args = extractor.get('args')
+            re_pattern = extractor.get('re')
 
+            if method == 'xpath' and not args:
+                result = response.xpath(args).get()
+                if re_pattern and result:  # 如果提供了正则表达式
+                    match = re.match(re_pattern, result)
+                    if match:
+                        result = match.group(1)  # 获取第一个匹配组的结果
+                extracted_data[key] = result
+            elif method == 'css' and not args:
+                result = response.css(args).get()
+                if re_pattern and result:  # 如果提供了正则表达式
+                    match = re.match(re_pattern, result)
+                    if match:
+                        result = match.group(1)  # 获取第一个匹配组的结果
+                extracted_data[key] = result
+            elif method == 'value':
+                result = extractor.get('args')
+                if re_pattern and result:  # 如果提供了正则表达式
+                    match = re.match(re_pattern, result)
+                    if match:
+                        result = match.group(1)  # 获取第一个匹配组的结果
+                extracted_data[key] = result
+            elif method == 'attr' and not args:
+                result = getattr(response, args)
+                if re_pattern and result:  # 如果提供了正则表达式
+                    match = re.match(re_pattern, str(result))
+                    if match:
+                        result = match.group(1)  # 获取第一个匹配组的结果
+                extracted_data[key] = result
 
+    return extracted_data
 class MyLxmlParserLinkExtractor:
     def __init__(
         self,
@@ -519,25 +573,18 @@ class MyLxmlParserLinkExtractor:
             except ValueError:
                 logger.debug(f"Skipping extraction of link with bad URL {url!r}")
                 continue
-            custom_data = {}
+            # custom_data = {}
 
-            if self.restrict_extra_xpath:
-                for attr_name, extra_xpath in self.restrict_extra_xpath.items():
+            # if self.restrict_extra_xpath:
+            #     for attr_name, extra_xpath in self.restrict_extra_xpath.items():
+            #         for extra_tag in selector.xpath(extra_xpath):
+            #             print('extra_tag:::',extra_tag)
+            #             print('type (extra_tag):::',type(extra_tag))
+            #             if not extra_xpath:continue
+            #             if not custom_data.get(attr_name):
+            #                 custom_data[attr_name]=extra_tag.get()
 
-                    for extra_tag in selector.xpath(extra_xpath):
-                        print('extra_tag:::',extra_tag)
-                        print('type (extra_tag):::',type(extra_tag))
-                        if not extra_xpath:continue
-                        # 提取自定义数据
-
-                        if not custom_data.get(attr_name):
-                            custom_data[attr_name]=extra_tag.get()
-
-            # if self.restrict_json:
-            #     for attr_name, extra_json in self.restrict_json.items():
-            #         # 这里要用jmspath 来解析
-            #         jmes_value=jmespath.search(extra_json,)
-
+            custom_data = extract_data_from_res(selector,self.restrict_extra_xpath)
 
             link = Link(
                 urljoin(base_url, attr_val),
@@ -690,10 +737,23 @@ class MyLxmlLinkExtractor:
         otherwise they are returned.
         """
         base_url = get_base_url(response)
-        extra_xpath_value={}
-        if self.extra_xpath:
-            for k,v in self.extra_xpath.items():
-                extra_xpath_value[k]=response.xpath(v).get()
+
+        # extra_xpath_value={}
+        # if self.extra_xpath:
+        #     for key, value in self.extra_xpath.items():
+        #         method = value.get('method')
+        #         args = value.get('args')
+        #         re_pattern = value.get('re')
+        #         if method == 'xpath':
+        #             result = response.xpath(args).get()
+        #             if re_pattern:  # 如果提供了正则表达式
+        #                 import re
+        #                 match = re.match(re_pattern, result)
+        #                 if match:
+        #                     result = match.group(1)  # 获取第一个匹配组的结果
+        #             extra_xpath_value[key] = result
+
+        extra_xpath_value = extract_data_from_res(response, self.extra_xpath)
         if self.restrict_xpaths:
             docs = [
                 subdoc for x in self.restrict_xpaths for subdoc in response.xpath(x)

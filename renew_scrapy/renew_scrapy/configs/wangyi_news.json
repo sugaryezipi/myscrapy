@@ -1,0 +1,70 @@
+{
+  "spider": "common_get_xpath",
+  "website": "网易新闻",
+  "type": "新闻",
+  "index": "https://news.163.com/",
+  "settings": {
+    "USER_AGENT": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36"
+  },
+  "start_urls": [
+    "https://news.163.com/"
+  ],
+  "allowed_domains": [
+    "163.com"
+  ],
+  "rules": {
+    "articles": {
+        "link_ext_type": "MyLxmlLinkExtractor",
+        "allow": "article/.*?\\.html",
+        "restrict_xpaths": "//li[@class='newsdata_item']/div[@class='hidden']",
+        "restrict_extra_xpath": {
+            "title_1": {
+                "method": "xpath",
+                "args": ".//a/text()",
+                "re": ""
+            }
+
+        },
+        "extra_xpath": {
+        },
+        "ext_params": [
+
+        ]
+    }
+
+},
+
+  "item": {
+    "class": "NewsItem",
+    "loader": "ChinaLoader",
+    "attrs": {
+      "title": {
+        "method": "xpath",
+        "args": "//h1[@class='post_title']/text()"
+      },
+      "url": {
+        "method": "attr",
+        "args": "url"
+      },
+      "text": {
+        "method": "xpath",
+        "args": "//div[@class='post_body']//text()"
+      },
+      "datetime": {
+        "method": "xpath",
+        "args": "//div[@class='post_info']//text()",
+        "re": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})"
+      },
+      "source": {
+        "method": "xpath",
+        "args": "//div[@class='post_info']//text()",
+        "re": "来源：(.*)"
+      },
+      "website": {
+        "method": "value",
+        "args": "网易新闻"
+
+      }
+    }
+  }
+}

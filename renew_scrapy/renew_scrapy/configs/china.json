@@ -12,61 +12,80 @@
   "allowed_domains": [
     "tech.china.com"
   ],
-  "rules": "china",
+  "start_requests": {
+    "method": "GET",
+    "data": {"product_id": 1},
+    "meta": {"product_id": 1},
+    "dont_filter":true,
+    "cookies": {"product_id": 1}
+  },
+  "rules": {
+    "articles": {
+        "link_ext_type": "MyLxmlLinkExtractor",
+        "allow": "article/.*\\.html",
+        "restrict_xpaths": "//div[@id='rank-defList']//div[@class='item-con-inner']",
+        "restrict_extra_xpath": {
+            "name": {
+                "method": "xpath",
+                "args": ".//a/text()",
+                "re": ""
+            },
+            "date": {
+                "method": "xpath",
+                "args": ".//span[@class='time']/text()",
+                "re": ""
+            }
+        },
+        "extra_xpath": {
+            "page": {
+                "method": "xpath",
+                "args": "//div[@class='page']/span/text()",
+                "re": ""
+            }
+        },
+        "ext_params": [
+            "page",
+            "name",
+            "date"
+        ]
+    },
+    "pagination": {
+          "link_ext_type": "MyLxmlLinkExtractor",
+        "restrict_xpaths": "//div[@id='pageStyle']//a[contains(., '下一页')]"
+    }
+},
+
   "item": {
     "class": "NewsItem",
     "loader": "ChinaLoader",
     "attrs": {
-      "title": [
-        {
-          "method": "xpath",
-          "args": [
-            "//h1[@id='chan_newsTitle']/text()"
-          ]
-        }
-      ],
-      "url": [
-        {
-          "method": "attr",
-          "args": [
-            "url"
-          ]
-        }
-      ],
-      "text": [
-        {
-          "method": "xpath",
-          "args": [
-            "//div[@id='chan_newsDetail']//text()"
-          ]
-        }
-      ],
-      "datetime": [
-        {
-          "method": "xpath",
-          "args": [
-            "//div[@id='chan_newsInfo']/text()"
-          ],
-          "re": "(\\d+-\\d+-\\d+\\s\\d+:\\d+:\\d+)"
-        }
-      ],
-      "source": [
-        {
-          "method": "xpath",
-          "args": [
-            "//div[@id='chan_newsInfo']/text()"
-          ],
-          "re": "来源：(.*)"
-        }
-      ],
-      "website": [
-        {
-          "method": "value",
-          "args": [
-            "中华网"
-          ]
-        }
-      ]
+      "title": {
+        "method": "xpath",
+        "args": "//h1[@id='chan_newsTitle']/text()"
+      },
+      "url": {
+        "method": "attr",
+        "args": "url"
+      },
+      "text": {
+        "method": "xpath",
+        "args": "//div[@id='chan_newsDetail']//text()"
+      },
+      "datetime": {
+        "method": "xpath",
+        "args": "//div[@id='chan_newsInfo']/text()",
+        "re": "(\\d+-\\d+-\\d+\\s\\d+:\\d+:\\d+)"
+      },
+      "source": {
+        "method": "xpath",
+        "args": "//div[@id='chan_newsInfo']/text()",
+        "re": "来源：(.*)"
+      },
+      "website": {
+        "method": "value",
+        "args": "中华网",
+        "re": ""
+      }
     }
   }
 }

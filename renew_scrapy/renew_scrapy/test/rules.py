@@ -17,6 +17,13 @@ from renew_scrapy.zegbee_middleware import  Rule
 'next_page_base_url':'',  一定要有 {}  自己填写
 'next_page_base_format_id':'',
 
+------------------------
+ "name": {
+          "method": "xpath",
+          "args": "//div[@class='page']/span/text()",
+          "re":""
+        }
+      ,
 '''
 
 rules = {
@@ -24,18 +31,32 @@ rules = {
                                        restrict_xpaths='//div[@id="rank-defList"]//div[@class="item-con-inner"]',
 
 
-                                       restrict_extra_xpath={'name': './/a/text()',
-                                                             'date': './/span[@class="time"]/text()',
+                                       restrict_extra_xpath={
+                                                             "name": {
+                                                              "method": "xpath",
+                                                              "args": ".//a/text()",
+                                                              "re":""
+                                                            },
+                                                             "date": {
+                                                              "method": "xpath",
+                                                              "args": ".//span[@class='time']/text()",
+                                                              "re":""
+                                                            }
                                                              },
-                                       extra_xpath={'page': '//div[@class="page"]/span/text()'},
+                                       extra_xpath={'page': {
+                                                              "method": "xpath",
+                                                              "args": "//div[@class='page']/span/text()",
+                                                              "re":""
+                                                            }},
                                        ext_params=['page', 'name', 'date']
                                        ),
                    callback='parse_item',
 
                    ),
-    # Rule(MyLxmlLinkExtractor(restrict_xpaths='//div[@id="pageStyle"]//a[contains(., "下一页")]'))
-),
+    Rule(MyLxmlLinkExtractor(restrict_xpaths='//div[@id="pageStyle"]//a[contains(., "下一页")]'))
 
+),
+    # 问题1  extra_xpath 中xpath以后还得要正则
     #  self.req_method = req_method
     #     self.req_data = req_data
 'json_demo':(
@@ -54,13 +75,13 @@ rules = {
                                     ),
              callback='parse_item',
             req_method='POST',
-         req_data={
-            'product_id': {'value':'next_page',
-                           'source':'meta'},
-             'product_id2': {'value': 'next_page',
-                            'source': 'constant'}
-             # 这个next-page是上面的key， 第二页的时候 就会替换成真实值
-         }
+             req_data={
+                'product_id': {'value':'next_page',
+                               'source':'meta'},
+                 'product_id2': {'value': 'next_page',
+                                'source': 'constant'}
+                 # 这个next-page是上面的key， 第二页的时候 就会替换成真实值
+             }
                   ),
             Rule(JsonLinkExtractor(restrict_json={},
                                                 extra_json={
